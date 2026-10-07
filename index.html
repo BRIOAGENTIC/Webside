@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caturdaśa Vidyāsthāna – 3D Explorer (Copy)</title>
+<style>
+:root{--bg:#0b0a14;--panel:#16142a;--text:#f2ecdc;--mute:#a9a3c0;--v:#58b368;--a:#e8a53c;--u:#c9b38a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+header{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;padding:14px 16px;pointer-events:none;text-align:center}
+h1{margin:0;font-size:clamp(18px,3.4vw,28px);letter-spacing:.04em}
+header p{margin:4px 0 0;color:var(--mute);font-size:13px}
+#legend{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mute);background:#16142acc;padding:8px 12px;border-radius:10px;line-height:1.7}
+#legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+#prog{position:fixed;right:12px;top:calc(70px + env(safe-area-inset-top,0px));font-size:12px;color:var(--mute);background:#16142acc;padding:6px 10px;border-radius:10px}
+#panel{position:fixed;right:16px;top:50%;transform:translate(120%,-50%);width:340px;max-width:calc(100% - 32px);max-height:75%;overflow:auto;background:var(--panel);border:1px solid #ffffff22;border-radius:16px;padding:18px;transition:transform .35s ease;box-shadow:0 10px 40px #000a}
+#panel.open{transform:translate(0,-50%)}
+#panel .tag{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+#panel h2{margin:6px 0 0;font-size:22px}
+#panel .dv{font-size:20px;color:var(--mute);margin-bottom:8px}
+#panel p{line-height:1.55;font-size:14px;margin:8px 0}
+#panel ul{padding-left:18px;margin:8px 0;font-size:14px;line-height:1.6}
+#x{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--text);font-size:22px;cursor:pointer}
+@media(max-width:700px){#panel{right:8px;left:8px;top:auto;bottom:8px;width:auto;max-width:none;max-height:55%;transform:translateY(120%)}#panel.open{transform:none}#legend{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<header><h1>चतुर्दश विद्यास्थान · Caturdaśa Vidyāsthāna</h1><p>Drag karke ghumao · kisi bhi gole par click karo · scroll/pinch se zoom</p></header>
+<div id="prog">Explored: <b id="n">0</b>/14</div>
+<div id="legend"><i style="background:#58b368"></i>4 Vedas<br><i style="background:#e8a53c"></i>6 Vedāṅgas<br><i style="background:#c9b38a"></i>4 Upāṅgas / Śāstras</div>
+<div id="panel"><button id="x" aria-label="close">×</button><div class="tag" id="pt"></div><h2 id="ph"></h2><div class="dv" id="pd"></div><p id="pp"></p><ul id="pl"></ul></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+var D=[
+{n:"Ṛgveda",dv:"ऋग्वेद",c:"v",d:"Sabse purana Veda. Devtaon ki stuti mein likhe mantra (ṛcā) ka sangrah.",p:["10 Maṇḍalas, lagbhag 1028 Sūktas","Agni, Indra, Soma, Varuṇa ki stutiyan","Gāyatrī Mantra yahin se hai"]},
+{n:"Yajurveda",dv:"यजुर्वेद",c:"v",d:"Yajña (rituals) mein bole jane wale gadya-mantra aur vidhiyan.",p:["Do shakhaen: Śukla aur Kṛṣṇa Yajurveda","Adhvaryu purohit isse prayog karta hai","Īśāvāsya Upaniṣad isi mein hai"]},
+{n:"Sāmaveda",dv:"सामवेद",c:"v",d:"Ṛgveda ke mantron ko sur (melody) mein gaane ka Veda.",p:["Bharatiya sangeet ka mool maana jata hai","Udgātā purohit gaata hai","Sapta-svar ki shuruaat yahin se"]},
+{n:"Atharvaveda",dv:"अथर्ववेद",c:"v",d:"Rozmarra ke jeevan, swasthya, aushadhi aur shanti-karm ke mantra.",p:["Ayurveda ka mool srot","Rog-nivaran, raksha aur rajneeti ke mantra","Mundaka, Praśna Upaniṣad isse"]},
+{n:"Śikṣā",dv:"शिक्षा",c:"a",d:"Phonetics – uchcharan ka vigyan. Vedic mantra sahi dhwani se bolne ka niyam.",p:["Varṇa, svara, mātrā, bala, sāma, santāna","Vedaṅga ki 'naak' (ghrāṇa) kahi jati hai","Prātiśākhya granth is vishay par"]},
+{n:"Vyākaraṇa",dv:"व्याकरण",c:"a",d:"Grammar – shabd-rachna aur vakya ke niyam. Vedaṅga ka 'mukh' (face).",p:["Pāṇini – Aṣṭādhyāyī (~4000 sūtra)","Patañjali – Mahābhāṣya","Computer science (formal grammar) par prabhav"]},
+{n:"Chandas",dv:"छंद",c:"a",d:"Prosody – shlok ki laya, matra aur akshar ki ginti ke niyam. Vedaṅga ke 'pair'.",p:["Pingala – Chandaḥśāstra","Gāyatrī, Triṣṭubh, Anuṣṭubh meters","Binary system ke shuruaati vichar yahin"]},
+{n:"Nirukta",dv:"निरुक्त",c:"a",d:"Etymology – Vedic shabdon ke arth aur utpatti ki vyakhya. Vedaṅga ke 'kaan'.",p:["Yāska ka Nirukta, Nighaṇṭu par tika","Shabd ka dhatu se arth nikalna","Vedic arth samajhne ki kunji"]},
+{n:"Jyotiṣa",dv:"ज्योतिष",c:"a",d:"Astronomy – grah, nakshatra, kal-ganna. Yajña ka sahi muhurt tay karne ke liye. Vedaṅga ki 'aankh'.",p:["Lagadha ka Vedāṅga Jyotiṣa","Calendar, tithi, ṛtu ki ganna","Aryabhata, Varāhamihira aage ki parampara"]},
+{n:"Kalpa",dv:"कल्प",c:"a",d:"Rituals – yajña aur sanskaron ki poori vidhi. Vedaṅga ke 'haath'.",p:["Śrauta, Gṛhya aur Dharma Sūtras","Shodash sanskar ka aadhar","Śulba Sūtra mein geometry bhi"]},
+{n:"Purāṇa & Itihāsa",dv:"पुराण · इतिहास",c:"u",d:"Kathaon ke madhyam se Veda ka gyan aam logon tak. Itihasa = Ramayana, Mahabharata.",p:["18 Mahāpurāṇa (Viṣṇu, Bhāgavata…)","Rāmāyaṇa – Vālmīki","Mahābhārata – Vyāsa (Bhagavad Gītā isi mein)"]},
+{n:"Dharmaśāstra & Smṛti",dv:"धर्मशास्त्र · स्मृति",c:"u",d:"Samaj, kartavya, kanoon aur achaar ke niyam.",p:["Manusmṛti, Yājñavalkya Smṛti","Varṇāśrama, vivah, uttaradhikar, dand","Bharatiya vidhi (law) ki parampara"]},
+{n:"Nyāya · Vaiśeṣika · Yoga · Sāṃkhya",dv:"न्याय · वैशेषिक · योग · सांख्य",c:"u",d:"Darshan (philosophy) ki char dharaen: tark, padarth, chitta-shuddhi aur prakriti-purusha.",p:["Nyāya (Gautama) – pramāṇa, tarka, logic","Vaiśeṣika (Kaṇāda) – paramāṇu, padārtha","Yoga (Patañjali) – aṣṭāṅga yoga","Sāṃkhya (Kapila) – puruṣa & prakṛti"]},
+{n:"Pūrva & Uttara Mīmāṃsā",dv:"पूर्व मीमांसा · उत्तर मीमांसा",c:"u",d:"Veda ke arth ki vyakhya. Pūrva = karma-kāṇḍa, Uttara = jñāna-kāṇḍa (Vedānta).",p:["Pūrva: Jaimini – Mīmāṃsā Sūtra, dharma aur yajña","Uttara: Bādarāyaṇa – Brahma Sūtra","Vedānta: Upaniṣad ka tatva-gyan"]}
+];
+var COL={v:0x58b368,a:0xe8a53c,u:0xc9b38a},TAG={v:"Veda",a:"Vedāṅga",u:"Upāṅga / Śāstra"},CSS={v:"#58b368",a:"#e8a53c",u:"#c9b38a"};
+var cv=document.getElementById("c"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+var S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(50,1,.1,200),G=new THREE.Group();S.add(G);
+S.add(new THREE.AmbientLight(0xffffff,.55));var pl=new THREE.PointLight(0xffd9a0,1.4,60);pl.position.set(0,6,8);S.add(pl);
+var zoom=1;
+function fit(){var w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.position.set(0,6,16/Math.min(1,cam.aspect*1.15)*zoom);cam.lookAt(0,0,0);cam.updateProjectionMatrix()}
+addEventListener("resize",fit);fit();
+function label(t,col){var c=document.createElement("canvas");c.width=512;c.height=96;var x=c.getContext("2d");x.font="bold 40px system-ui,sans-serif";x.textAlign="center";x.fillStyle=col;x.shadowColor="#000";x.shadowBlur=8;x.fillText(t.length>22?t.slice(0,21)+"…":t,256,60);var s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false}));s.scale.set(4,.75,1);return s}
+var core=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xffd27a,emissive:0xaa6a10,wireframe:true}));G.add(core);
+var cl=label("14 · Vidyāsthāna","#ffd27a");cl.position.y=1.5;G.add(cl);
+var M=[],lp=[];
+function ring(r){var m=new THREE.Mesh(new THREE.TorusGeometry(r,.015,6,96),new THREE.MeshBasicMaterial({color:0x6a6490,transparent:true,opacity:.5}));m.rotation.x=Math.PI/2;G.add(m)}
+ring(2.8);ring(5);ring(7.2);
+D.forEach(function(o,i){
+ var r,a,y,sz;
+ if(o.c=="v"){r=2.8;a=(i*90+45)*Math.PI/180;y=0;sz=.62}
+ else if(o.c=="a"){r=5;a=((i-4)*60+30)*Math.PI/180;y=(i%2?-1:1)*.9;sz=.5}
+ else{r=7.2;a=((i-10)*90)*Math.PI/180;y=(i%2?.7:-.7);sz=.56}
+ var m=new THREE.Mesh(new THREE.SphereGeometry(sz,32,24),new THREE.MeshStandardMaterial({color:COL[o.c],emissive:COL[o.c],emissiveIntensity:.25,roughness:.35,metalness:.2}));
+ m.position.set(Math.cos(a)*r,y,Math.sin(a)*r);m.userData={i:i,base:sz,seen:false};
+ var l=label(o.n,CSS[o.c]);l.position.set(0,sz+.65,0);m.add(l);G.add(m);M.push(m);
+ lp.push(0,0,0,m.position.x,y,m.position.z)});
+var lg=new THREE.BufferGeometry();lg.setAttribute("position",new THREE.Float32BufferAttribute(lp,3));
+G.add(new THREE.LineSegments(lg,new THREE.LineBasicMaterial({color:0x6a6490,transparent:true,opacity:.35})));
+var sp=[];for(var k=0;k<500;k++)sp.push((Math.random()-.5)*120,(Math.random()-.5)*80,(Math.random()-.5)*120);
+var sg=new THREE.BufferGeometry();sg.setAttribute("position",new THREE.Float32BufferAttribute(sp,3));S.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:.12})));
+var sel=null,drag=false,moved=0,lx=0,ly=0,vy=.0025,RC=new THREE.Raycaster(),P=new THREE.Vector2(),seen=0;
+function pick(e){P.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);RC.setFromCamera(P,cam);var h=RC.intersectObjects(M,false);return h.length?h[0].object:null}
+cv.addEventListener("pointerdown",function(e){drag=true;moved=0;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener("pointermove",function(e){if(drag){var dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);G.rotation.y+=dx*.006;G.rotation.x=Math.max(-.9,Math.min(.9,G.rotation.x+dy*.004));lx=e.clientX;ly=e.clientY}else cv.style.cursor=pick(e)?"pointer":"grab"});
+cv.addEventListener("pointerup",function(e){drag=false;if(moved<6){var m=pick(e);if(m)show(m);else close()}});
+cv.addEventListener("wheel",function(e){e.preventDefault();zoom=Math.max(.5,Math.min(1.6,zoom+e.deltaY*.001));fit()},{passive:false});
+var pts={};cv.addEventListener("touchstart",function(e){if(e.touches.length==2)pts.d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY)},{passive:true});
+cv.addEventListener("touchmove",function(e){if(e.touches.length==2&&pts.d){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);zoom=Math.max(.5,Math.min(1.6,zoom*pts.d/d));pts.d=d;fit()}},{passive:true});
+var $=function(i){return document.getElementById(i)};
+function show(m){sel=m;var o=D[m.userData.i];$("pt").textContent=TAG[o.c];$("pt").style.color=CSS[o.c];$("ph").textContent=o.n;$("pd").textContent=o.dv;$("pp").textContent=o.d;
+ $("pl").innerHTML=o.p.map(function(t){return"<li>"+t+"</li>"}).join("");$("panel").classList.add("open");
+ if(!m.userData.seen){m.userData.seen=true;$("n").textContent=++seen}}
+function close(){sel=null;$("panel").classList.remove("open")}
+$("x").onclick=close;
+(function loop(){requestAnimationFrame(loop);if(!drag&&!sel)G.rotation.y+=vy;core.rotation.y+=.01;core.rotation.x+=.006;
+ M.forEach(function(m){var t=m===sel?1.4:1,s=m.scale.x+(t-m.scale.x)*.15;m.scale.setScalar(s);m.material.emissiveIntensity=m===sel?.9:(m.userData.seen?.5:.25)});R.render(S,cam)})();
+</script>
+</body>
+</html>
